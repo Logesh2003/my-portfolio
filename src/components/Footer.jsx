@@ -1,30 +1,49 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import emailjs from "emailjs-com";
+import emailjs from "@emailjs/browser";
 
 const Footer = () => {
     const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
     const [status, setStatus] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        emailjs.send(
-            process.env.REACT_APP_EMAILJS_SERVICE_ID,
-            process.env.REACT_APP_EMAILJS_TEMPLATE_ID,
-            formData,
-            process.env.REACT_APP_EMAILJS_PUBLIC_KEY
-        )
-            .then((result) => {
+        if (loading) return;
+
+        setLoading(true);
+        setStatus("");
+
+        const payload = {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim(),
+            message: formData.message.trim(),
+        };
+
+        emailjs
+            .send(
+                import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                payload,
+                import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+            )
+            .then(() => {
                 setStatus("Message sent successfully!");
                 setFormData({ name: "", email: "", phone: "", message: "" });
-            }, (error) => {
-                console.error(error);
-                setStatus("Failed to send message. Try again.");
+            })
+            .catch((error) => {
+                console.error("EmailJS error:", error);
+                setStatus("Failed to send message. Please try again.");
+            })
+            .finally(() => {
+                setLoading(false);
             });
     };
+
 
     return (
         <motion.footer
@@ -41,7 +60,7 @@ const Footer = () => {
                     <input type="email" name="email" placeholder="Your Email" required value={formData.email} onChange={handleChange} />
                     <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} />
                     <textarea name="message" placeholder="Message" required value={formData.message} onChange={handleChange} />
-                    <button className="btn primary" type="submit">Send</button>
+                    <button className="btn primary" type="submit" disabled={loading}>{loading ? "Sending..." : "Send"}</button>
                 </form>
                 {status && <p style={{ marginTop: "8px" }}>{status}</p>}
                 <div
